@@ -205,25 +205,6 @@ public class UploadService extends IntentService {
             .setContentText(url)
             .build();
 
-        //// Creates an explicit intent for an Activity in your app
-        //Intent resultIntent = new Intent(this, ResultActivity.class);
-
-        //// The stack builder object will contain an artificial back stack for the
-        //// started Activity.
-        //// This ensures that navigating backward from the Activity leads out of
-        //// your application to the Home screen.
-        //TaskStackBuilder stackBuilder = TaskStackBuilder.create(this);
-        //// Adds the back stack for the Intent (but not the Intent itself)
-        //stackBuilder.addParentStack(ResultActivity.class);
-        //// Adds the Intent that starts the Activity to the top of the stack
-        //stackBuilder.addNextIntent(resultIntent);
-        //PendingIntent resultPendingIntent =
-        //        stackBuilder.getPendingIntent(
-        //            0,
-        //            PendingIntent.FLAG_UPDATE_CURRENT
-        //        );
-
-
         NotificationManager mNotificationManager =
             (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
 
@@ -234,7 +215,7 @@ public class UploadService extends IntentService {
 
     @Override
     protected void onHandleIntent(Intent intent) {
-        String[] posts = { "key=4242" };
+        String[] posts = { "key=rasenkey" };
         Uri uri = (Uri) intent.getParcelableExtra("uri");
         String fileName = getFileNameByUri(uri);
 
@@ -243,10 +224,9 @@ public class UploadService extends IntentService {
             inputStream = getApplicationContext().getContentResolver()
                     .openInputStream(uri);
 
-            String out = multipartRequest("http://rugmi.fsck.com.ar/", posts,
+            String url = multipartRequest("http://rugmi.fsck.com.ar/", posts,
                     inputStream, fileName, "file");
-            Log.d("DEBUG SR", out);
-            notificateUrl("http://rugmi.fsck.com.ar"+out);
+            notificateUrl(url);
 
         } catch (FileNotFoundException e) {
             // TODO Auto-generated catch block
