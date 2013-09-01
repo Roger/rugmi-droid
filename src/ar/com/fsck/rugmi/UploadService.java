@@ -90,7 +90,7 @@ public class UploadService extends IntentService {
             connection.setRequestMethod("POST");
             connection.setRequestProperty("Connection", "Keep-Alive");
             connection.setRequestProperty("User-Agent",
-                    "Android Multipart HTTP Client 1.0");
+                    "Rugmi-Droid HTTP Client 1.0");
             connection.setRequestProperty("Content-Type",
                     "multipart/form-data; boundary=" + boundary);
 
