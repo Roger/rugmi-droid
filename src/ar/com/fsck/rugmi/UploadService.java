@@ -15,6 +15,7 @@ import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.database.Cursor;
 import android.net.ParseException;
 import android.net.Uri;
@@ -215,16 +216,22 @@ public class UploadService extends IntentService {
 
     @Override
     protected void onHandleIntent(Intent intent) {
-        String[] posts = { "key=rasenkey" };
         Uri uri = (Uri) intent.getParcelableExtra("uri");
         String fileName = getFileNameByUri(uri);
+
+        SharedPreferences prefs = getSharedPreferences("ConfigActivity", MODE_PRIVATE);
+
+        String keyPref = prefs.getString("key", "");
+        String urlPref = prefs.getString("url", "");
+
+        String[] posts = { "key="+keyPref };
 
         InputStream inputStream;
         try {
             inputStream = getApplicationContext().getContentResolver()
                     .openInputStream(uri);
 
-            String url = multipartRequest("http://rugmi.fsck.com.ar/", posts,
+            String url = multipartRequest(urlPref, posts,
                     inputStream, fileName, "file");
             notificateUrl(url);
 
