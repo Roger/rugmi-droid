@@ -195,7 +195,7 @@ public class UploadService extends IntentService {
         intent.addFlags(Intent.FLAG_ACTIVITY_NO_HISTORY);
         intent.addFlags(Intent.FLAG_FROM_BACKGROUND);
 
-        PendingIntent pIntent = PendingIntent.getActivity(this, 0, intent, 0);
+        PendingIntent pIntent = PendingIntent.getActivity(this, 0, intent, PendingIntent.FLAG_CANCEL_CURRENT);
 
         Notification noti = new NotificationCompat.Builder(this)
             .setSmallIcon(R.drawable.ic_launcher)
