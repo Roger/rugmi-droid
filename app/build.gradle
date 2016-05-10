@@ -6,7 +6,7 @@ android {
 
     defaultConfig {
         applicationId "ar.com.fsck.rugmi"
-        minSdkVersion 7
+        minSdkVersion 11
         targetSdkVersion 16
     }
 
