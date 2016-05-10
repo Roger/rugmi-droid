@@ -11,15 +11,15 @@ public class NotificationReceiveActivity extends Activity {
         super.onCreate(savedInstanceState);
         Intent intent = getIntent();
 
-        String url = intent.getStringExtra("url");
+        String text = intent.getStringExtra("text");
 
         int sdk = android.os.Build.VERSION.SDK_INT;
         if(sdk < android.os.Build.VERSION_CODES.HONEYCOMB) {
             android.text.ClipboardManager clipboard = (android.text.ClipboardManager) getSystemService(Context.CLIPBOARD_SERVICE);
-            clipboard.setText(url);
+            clipboard.setText(text);
         } else {
             android.content.ClipboardManager clipboard = (android.content.ClipboardManager) getSystemService(Context.CLIPBOARD_SERVICE); 
-            android.content.ClipData clip = android.content.ClipData.newPlainText("text label", url);
+            android.content.ClipData clip = android.content.ClipData.newPlainText("text label", text);
             clipboard.setPrimaryClip(clip);
         }
 

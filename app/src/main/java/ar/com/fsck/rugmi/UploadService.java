@@ -6,6 +6,8 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.io.StringWriter;
+import java.io.PrintWriter;
 import java.net.HttpURLConnection;
 import java.net.URL;
 
@@ -59,7 +61,7 @@ public class UploadService extends IntentService {
     // see http://androidsnippets.com/multipart-http-requests
     public String multipartRequest(String urlTo, String[] posts,
             InputStream fileInputStream, String fileName, String fileField)
-            throws ParseException, IOException {
+            throws Exception {
 
         HttpURLConnection connection = null;
         DataOutputStream outputStream = null;
@@ -76,78 +78,74 @@ public class UploadService extends IntentService {
         byte[] buffer;
         int maxBufferSize = 1 * 1024 * 1024;
 
-        try {
-            //File file = new File(filepath);
-            //FileInputStream fileInputStream = new FileInputStream(file);
+        URL url = new URL(urlTo);
+        connection = (HttpURLConnection) url.openConnection();
 
-            URL url = new URL(urlTo);
-            connection = (HttpURLConnection) url.openConnection();
+        connection.setDoInput(true);
+        connection.setDoOutput(true);
+        connection.setUseCaches(false);
 
-            connection.setDoInput(true);
-            connection.setDoOutput(true);
-            connection.setUseCaches(false);
+        connection.setRequestMethod("POST");
+        connection.setRequestProperty("Connection", "Keep-Alive");
+        connection.setRequestProperty("User-Agent",
+                "Rugmi-Droid HTTP Client 1.0");
+        connection.setRequestProperty("Content-Type",
+                "multipart/form-data; boundary=" + boundary);
 
-            connection.setRequestMethod("POST");
-            connection.setRequestProperty("Connection", "Keep-Alive");
-            connection.setRequestProperty("User-Agent",
-                    "Rugmi-Droid HTTP Client 1.0");
-            connection.setRequestProperty("Content-Type",
-                    "multipart/form-data; boundary=" + boundary);
+        outputStream = new DataOutputStream(connection.getOutputStream());
+        outputStream.writeBytes(twoHyphens + boundary + lineEnd);
+        outputStream
+                .writeBytes("Content-Disposition: form-data; name=\""
+                        + fileField + "\"; filename=\"" + fileName + "\""
+                        + lineEnd);
+        outputStream.writeBytes("Content-Transfer-Encoding: binary"
+                + lineEnd);
+        outputStream.writeBytes(lineEnd);
 
-            outputStream = new DataOutputStream(connection.getOutputStream());
-            outputStream.writeBytes(twoHyphens + boundary + lineEnd);
-            outputStream
-                    .writeBytes("Content-Disposition: form-data; name=\""
-                            + fileField + "\"; filename=\"" + fileName + "\""
-                            + lineEnd);
-            outputStream.writeBytes("Content-Transfer-Encoding: binary"
-                    + lineEnd);
-            outputStream.writeBytes(lineEnd);
+        bytesAvailable = fileInputStream.available();
+        bufferSize = Math.min(bytesAvailable, maxBufferSize);
+        buffer = new byte[bufferSize];
 
+        bytesRead = fileInputStream.read(buffer, 0, bufferSize);
+        while (bytesRead > 0) {
+            outputStream.write(buffer, 0, bufferSize);
             bytesAvailable = fileInputStream.available();
             bufferSize = Math.min(bytesAvailable, maxBufferSize);
-            buffer = new byte[bufferSize];
-
             bytesRead = fileInputStream.read(buffer, 0, bufferSize);
-            while (bytesRead > 0) {
-                outputStream.write(buffer, 0, bufferSize);
-                bytesAvailable = fileInputStream.available();
-                bufferSize = Math.min(bytesAvailable, maxBufferSize);
-                bytesRead = fileInputStream.read(buffer, 0, bufferSize);
-            }
-
-            outputStream.writeBytes(lineEnd);
-
-            int max = posts.length;
-            for (int i = 0; i < max; i++) {
-                outputStream.writeBytes(twoHyphens + boundary + lineEnd);
-                String[] kv = posts[i].split("=");
-                outputStream
-                        .writeBytes("Content-Disposition: form-data; name=\""
-                                + kv[0] + "\"" + lineEnd);
-                outputStream.writeBytes("Content-Type: text/plain" + lineEnd);
-                outputStream.writeBytes(lineEnd);
-                outputStream.writeBytes(kv[1]);
-                outputStream.writeBytes(lineEnd);
-            }
-
-            outputStream.writeBytes(twoHyphens + boundary + twoHyphens
-                    + lineEnd);
-
-            inputStream = connection.getInputStream();
-            result = this.convertStreamToString(inputStream);
-
-            fileInputStream.close();
-            inputStream.close();
-            outputStream.flush();
-            outputStream.close();
-
-            return result;
-        } catch (Exception e) {
-            Log.e("MultipartRequest", "Multipart Form Upload Error");
-            e.printStackTrace();
-            return "error";
         }
+
+        outputStream.writeBytes(lineEnd);
+
+        int max = posts.length;
+        for (int i = 0; i < max; i++) {
+            outputStream.writeBytes(twoHyphens + boundary + lineEnd);
+            String[] kv = posts[i].split("=");
+            outputStream
+                    .writeBytes("Content-Disposition: form-data; name=\""
+                            + kv[0] + "\"" + lineEnd);
+            outputStream.writeBytes("Content-Type: text/plain" + lineEnd);
+            outputStream.writeBytes(lineEnd);
+            outputStream.writeBytes(kv[1]);
+            outputStream.writeBytes(lineEnd);
+        }
+
+        outputStream.writeBytes(twoHyphens + boundary + twoHyphens
+                + lineEnd);
+
+        int responseCode = connection.getResponseCode();
+        if (responseCode != 200) {
+            throw new Exception("Connection Error Code: " + responseCode);
+        }
+
+        inputStream = connection.getInputStream();
+        result = this.convertStreamToString(inputStream);
+
+        fileInputStream.close();
+        inputStream.close();
+        outputStream.flush();
+        outputStream.close();
+
+        return result;
     }
 
     private String convertStreamToString(InputStream is) {
@@ -186,9 +184,9 @@ public class UploadService extends IntentService {
         super.onDestroy();
     }
 
-    public void notificateUrl(String url) {
+    public void notificate(String title, String text) {
         Intent intent = new Intent(this, NotificationReceiveActivity.class);
-        intent.putExtra("url", url);
+        intent.putExtra("text", text);
 
         intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
         intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
@@ -201,9 +199,9 @@ public class UploadService extends IntentService {
             .setSmallIcon(R.drawable.ic_launcher)
             .addAction(R.drawable.ic_launcher, "Copy", pIntent)
             .setContentIntent(pIntent)
-            .setContentTitle("Uploaded!")
+            .setContentTitle(title)
             .setAutoCancel(true)
-            .setContentText(url)
+            .setContentText(text)
             .build();
 
         NotificationManager mNotificationManager =
@@ -227,23 +225,21 @@ public class UploadService extends IntentService {
         String[] posts = { "key="+keyPref };
 
         InputStream inputStream;
+
         try {
             inputStream = getApplicationContext().getContentResolver()
                     .openInputStream(uri);
 
             String url = multipartRequest(urlPref, posts,
                     inputStream, fileName, "file");
-            notificateUrl(url);
+            notificate("Uploaded", url);
 
-        } catch (FileNotFoundException e) {
-            // TODO Auto-generated catch block
+        } catch (Exception e) {
+            Log.e("MultipartRequest", "Multipart Form Upload Error");
             e.printStackTrace();
-        } catch (ParseException e) {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
-        } catch (IOException e) {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
+            StringWriter sw = new StringWriter();
+            e.printStackTrace(new PrintWriter(sw));
+            notificate("Error", sw.toString());
         }
 
     }
