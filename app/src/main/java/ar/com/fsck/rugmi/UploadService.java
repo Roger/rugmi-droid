@@ -23,7 +23,8 @@ import android.net.ParseException;
 import android.net.Uri;
 import android.os.IBinder;
 import android.provider.MediaStore;
-import android.support.v4.app.NotificationCompat;
+import androidx.core.app.NotificationCompat;
+
 import android.util.Log;
 
 public class UploadService extends IntentService {
