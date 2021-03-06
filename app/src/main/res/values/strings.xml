@@ -3,5 +3,7 @@
 
     <string name="hello">Hello World, rugmiActivity!</string>
     <string name="app_name">rugmi</string>
+    <string name="channel_name">rugmi</string>
+    <string name="channel_description">rugmi notifications</string>
 
 </resources>

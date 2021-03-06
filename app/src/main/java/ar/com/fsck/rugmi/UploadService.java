@@ -12,21 +12,25 @@ import java.net.URL;
 
 import android.app.IntentService;
 import android.app.Notification;
+import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.database.Cursor;
-import android.net.ParseException;
 import android.net.Uri;
+import android.os.Build;
 import android.os.IBinder;
 import android.provider.MediaStore;
 import androidx.core.app.NotificationCompat;
+import androidx.core.app.NotificationManagerCompat;
 
 import android.util.Log;
 
 public class UploadService extends IntentService {
+
+    private static final String CHANNEL_ID = "rugmi_notifications";
 
     public UploadService() {
         super("UploadService");
@@ -183,11 +187,29 @@ public class UploadService extends IntentService {
     @Override
     public void onCreate() {
         super.onCreate();
+        createNotificationChannel();
     }
 
     @Override
     public void onDestroy() {
         super.onDestroy();
+    }
+
+    private void createNotificationChannel() {
+        // copypasted from docs
+        // Create the NotificationChannel, but only on API 26+ because
+        // the NotificationChannel class is new and not in the support library
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            CharSequence name = getString(R.string.channel_name);
+            String description = getString(R.string.channel_description);
+            int importance = NotificationManager.IMPORTANCE_DEFAULT;
+            NotificationChannel channel = new NotificationChannel(CHANNEL_ID, name, importance);
+            channel.setDescription(description);
+            // Register the channel with the system; you can't change the importance
+            // or other notification behaviors after this
+            NotificationManager notificationManager = getSystemService(NotificationManager.class);
+            notificationManager.createNotificationChannel(channel);
+        }
     }
 
     public void notificate(String title, String text) {
@@ -201,21 +223,28 @@ public class UploadService extends IntentService {
 
         PendingIntent pIntent = PendingIntent.getActivity(this, 0, intent, PendingIntent.FLAG_CANCEL_CURRENT);
 
-        Notification noti = new NotificationCompat.Builder(this)
+        Notification noti = new NotificationCompat.Builder(this, CHANNEL_ID)
             .setSmallIcon(R.drawable.ic_launcher)
             .addAction(R.drawable.ic_launcher, "Copy", pIntent)
             .setContentIntent(pIntent)
             .setContentTitle(title)
             .setAutoCancel(true)
             .setContentText(text)
+            .setStyle(new NotificationCompat.BigTextStyle().bigText(text))
             .build();
 
-        NotificationManager mNotificationManager =
-            (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
+        NotificationManagerCompat mNotificationManager = NotificationManagerCompat.from(this);
 
         // mId allows you to update the notification later on.
         mNotificationManager.notify(42, noti);
 
+    }
+
+    public void notificateException(Exception e) {
+        e.printStackTrace();
+        StringWriter sw = new StringWriter();
+        e.printStackTrace(new PrintWriter(sw));
+        notificate("Error", sw.toString());
     }
 
     @Override
@@ -242,10 +271,7 @@ public class UploadService extends IntentService {
 
         } catch (Exception e) {
             Log.e("MultipartRequest", "Multipart Form Upload Error");
-            e.printStackTrace();
-            StringWriter sw = new StringWriter();
-            e.printStackTrace(new PrintWriter(sw));
-            notificate("Error", sw.toString());
+            notificateException(e);
         }
 
     }
