@@ -2,7 +2,6 @@ package ar.com.fsck.rugmi;
 
 import java.io.BufferedReader;
 import java.io.DataOutputStream;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -42,19 +41,25 @@ public class UploadService extends IntentService {
 
         Uri filePathUri = uri;
         if (uri.getScheme().toString().compareTo("content") == 0) {
-            Cursor cursor = getContentResolver().query(uri, null, null, null,
-                    null);
-            if (cursor.moveToFirst()) {
-                //Instead of "MediaStore.Images.Media.DATA" can be used "_data"
+            Cursor cursor = null;
+            try {
+                cursor = getContentResolver().query(uri, null, null, null,
+                        null);
+            } catch (SecurityException e) {
+                return uri.getLastPathSegment();
+            }
+            if (cursor != null && cursor.moveToFirst()) {
+                // cursor contains three columns, _display_name, _size and _data
+                // no idea why we used to get _data, but it's often null
                 int column_index = cursor
-                        .getColumnIndexOrThrow(MediaStore.Images.Media.DATA);
+                        .getColumnIndexOrThrow(MediaStore.Images.Media.DISPLAY_NAME);
                 filePathUri = Uri.parse(cursor.getString(column_index));
-                fileName = filePathUri.getLastPathSegment().toString();
+                return filePathUri.getLastPathSegment().toString();
             }
         } else if (uri.getScheme().compareTo("file") == 0) {
-            fileName = filePathUri.getLastPathSegment().toString();
+            return filePathUri.getLastPathSegment().toString();
         } else {
-            fileName = fileName + "_" + filePathUri.getLastPathSegment();
+            return fileName + "_" + filePathUri.getLastPathSegment();
         }
         return fileName;
     }
