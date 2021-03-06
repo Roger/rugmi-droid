@@ -15,7 +15,6 @@ import android.app.Notification;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
-import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.database.Cursor;
@@ -212,7 +211,7 @@ public class UploadService extends IntentService {
         }
     }
 
-    public void notificate(String title, String text) {
+    public void notificate(int mid, String title, String text) {
         Intent intent = new Intent(this, NotificationReceiveActivity.class);
         intent.putExtra("text", text);
 
@@ -235,8 +234,7 @@ public class UploadService extends IntentService {
 
         NotificationManagerCompat mNotificationManager = NotificationManagerCompat.from(this);
 
-        // mId allows you to update the notification later on.
-        mNotificationManager.notify(42, noti);
+        mNotificationManager.notify(mid, noti);
 
     }
 
@@ -244,7 +242,7 @@ public class UploadService extends IntentService {
         e.printStackTrace();
         StringWriter sw = new StringWriter();
         e.printStackTrace(new PrintWriter(sw));
-        notificate("Error", sw.toString());
+        notificate(0, "Error", sw.toString());
     }
 
     @Override
@@ -267,7 +265,7 @@ public class UploadService extends IntentService {
 
             String url = multipartRequest(urlPref, posts,
                     inputStream, fileName, "file");
-            notificate("Uploaded", url);
+            notificate(1,"Uploaded", url);
 
         } catch (Exception e) {
             Log.e("MultipartRequest", "Multipart Form Upload Error");
