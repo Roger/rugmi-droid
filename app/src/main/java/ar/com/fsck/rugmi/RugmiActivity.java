@@ -2,8 +2,10 @@ package ar.com.fsck.rugmi;
 
 import android.app.Activity;
 import android.content.Intent;
+import android.database.Cursor;
 import android.net.Uri;
 import android.os.Bundle;
+import android.provider.MediaStore;
 import android.util.Log;
 
 public class RugmiActivity extends Activity {
@@ -39,5 +41,38 @@ public class RugmiActivity extends Activity {
 
         finish();
     }
+
+    public String getFileNameByUri(Uri uri) {
+        String fileName = "unknown"; //default fileName
+
+        if (uri == null) {
+            return fileName;
+        }
+
+        Uri filePathUri = uri;
+        if (uri.getScheme().toString().compareTo("content") == 0) {
+            Cursor cursor = null;
+            try {
+                cursor = getContentResolver().query(uri, null, null, null,
+                        null);
+            } catch (SecurityException e) {
+                return uri.getLastPathSegment();
+            }
+            if (cursor != null && cursor.moveToFirst()) {
+                // cursor contains three columns, _display_name, _size and _data
+                // no idea why we used to get _data, but it's often null
+                int column_index = cursor
+                        .getColumnIndexOrThrow(MediaStore.Images.Media.DISPLAY_NAME);
+                filePathUri = Uri.parse(cursor.getString(column_index));
+                return filePathUri.getLastPathSegment().toString();
+            }
+        } else if (uri.getScheme().compareTo("file") == 0) {
+            return filePathUri.getLastPathSegment().toString();
+        } else {
+            return fileName + "_" + filePathUri.getLastPathSegment();
+        }
+        return fileName;
+    }
+
 
 }
