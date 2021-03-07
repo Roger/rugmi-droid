@@ -47,8 +47,7 @@ public class RugmiActivity extends Activity {
                     uploadService.putExtra("filename", filename);
 
                     InputStream inputStream = getApplicationContext().getContentResolver().openInputStream(uri);
-                    byte[] data = IOUtils.toByteArray(inputStream);
-                    uploadService.putExtra("data", data);
+                    UploadService.uploadData = IOUtils.toByteArray(inputStream);
                 } catch (Exception e) {
                     StringWriter sw = new StringWriter();
                     e.printStackTrace(new PrintWriter(sw));

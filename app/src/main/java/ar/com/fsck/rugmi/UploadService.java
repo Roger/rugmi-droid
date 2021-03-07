@@ -30,6 +30,8 @@ public class UploadService extends IntentService {
 
     private static final String CHANNEL_ID = "rugmi_notifications";
 
+    public static byte[] uploadData;
+
     public UploadService() {
         super("UploadService");
     }
@@ -217,13 +219,14 @@ public class UploadService extends IntentService {
     protected void onHandleIntent(Intent intent) {
         Uri uri = (Uri) intent.getParcelableExtra("uri");
         String fileName = intent.getStringExtra("filename");
-        byte[] data = intent.getByteArrayExtra("data");
         String exceptionText = intent.getStringExtra("exception");
 
         if (exceptionText != null) {
             notificate(0, "Error", exceptionText);
             return;
         }
+
+        byte[] data = uploadData;
 
         SharedPreferences prefs = getSharedPreferences("ConfigActivity", MODE_PRIVATE);
 
