@@ -29,11 +29,15 @@ import android.util.Log;
 public class UploadService extends IntentService {
 
     private static final String CHANNEL_ID = "rugmi_notifications";
+    private static final String PROGRESS_CHANNEL_ID = "rugmi_progress";
+    private static final int ERROR_MID = 1;
     private static final int PROGRESS_MID = 2;
+    private static final int SUCCESS_MID = 3;
 
     public static byte[] uploadData;
 
     private NotificationCompat.Builder progressNotification;
+    private NotificationManagerCompat mNotificationManager;
 
     public UploadService() {
         super("UploadService");
@@ -176,15 +180,22 @@ public class UploadService extends IntentService {
         // Create the NotificationChannel, but only on API 26+ because
         // the NotificationChannel class is new and not in the support library
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            CharSequence name = getString(R.string.channel_name);
-            String description = getString(R.string.channel_description);
-            int importance = NotificationManager.IMPORTANCE_DEFAULT;
-            NotificationChannel channel = new NotificationChannel(CHANNEL_ID, name, importance);
-            channel.setDescription(description);
+            NotificationChannel channel = new NotificationChannel(
+                    CHANNEL_ID,
+                    "rugmi",
+                    NotificationManager.IMPORTANCE_DEFAULT
+            );
+
+            NotificationChannel progressChannel = new NotificationChannel(
+                    PROGRESS_CHANNEL_ID,
+                    "rugmi progress",
+                    NotificationManager.IMPORTANCE_LOW
+            );
             // Register the channel with the system; you can't change the importance
             // or other notification behaviors after this
             NotificationManager notificationManager = getSystemService(NotificationManager.class);
             notificationManager.createNotificationChannel(channel);
+            notificationManager.createNotificationChannel(progressChannel);
         }
     }
 
@@ -218,17 +229,25 @@ public class UploadService extends IntentService {
     }
 
     public void notificate(int mid, NotificationCompat.Builder builder) {
-        NotificationManagerCompat mNotificationManager = NotificationManagerCompat.from(this);
+        if (mNotificationManager == null) {
+            mNotificationManager = NotificationManagerCompat.from(this);
+        };
 
         mNotificationManager.notify(mid, builder.build());
     }
 
     public void progress(int read, int total) {
         if (progressNotification == null) {
-            progressNotification = buildNotification("Uploading", "Starting upload");
+            progressNotification = new NotificationCompat.Builder(this, PROGRESS_CHANNEL_ID)
+                    .setSmallIcon(R.drawable.ic_launcher)
+                    .setContentTitle("Uploading")
+                    .setContentText("Starting upload")
+                    .setOngoing(true)
+                    .setProgress(100, 0, false)
+                    .setPriority(NotificationCompat.PRIORITY_LOW);
         }
 
-        int percent = read / total * 100;
+        int percent = 100 * read / total;
 
         if (percent > 0) {
             progressNotification.setContentText(percent + "% done");
@@ -243,7 +262,7 @@ public class UploadService extends IntentService {
         e.printStackTrace();
         StringWriter sw = new StringWriter();
         e.printStackTrace(new PrintWriter(sw));
-        notificate(0, "Error", sw.toString());
+        notificate(ERROR_MID, "Error", sw.toString());
     }
 
     @Override
@@ -253,7 +272,7 @@ public class UploadService extends IntentService {
         String exceptionText = intent.getStringExtra("exception");
 
         if (exceptionText != null) {
-            notificate(0, "Error", exceptionText);
+            notificate(ERROR_MID, "Error", exceptionText);
             return;
         }
 
@@ -273,11 +292,10 @@ public class UploadService extends IntentService {
             int sizeBytes = data.length;
             String url = multipartRequest(urlPref, posts,
                     inputStream, fileName, "file", sizeBytes);
-            progressNotification.setContentTitle("Uploaded")
-                    .setContentText(url)
-                    .setProgress(0, 0, false);
-            notificate(PROGRESS_MID, progressNotification);
+
+            notificate(PROGRESS_MID, null);
             progressNotification = null;
+            notificate(SUCCESS_MID, "Uploaded", url);
 
         } catch (Exception e) {
             Log.e("MultipartRequest", "Multipart Form Upload Error");
