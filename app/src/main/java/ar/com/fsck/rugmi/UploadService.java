@@ -77,15 +77,33 @@ public class UploadService extends IntentService {
         connection.setRequestProperty("Content-Type",
                 "multipart/form-data; boundary=" + boundary);
 
+        String head = "";
+
+        for (int i = 0; i < posts.length; i++) {
+            String[] kv = posts[i].split("=");
+
+            head += twoHyphens + boundary + lineEnd
+                + "Content-Disposition: form-data; name=\"" + kv[0] + "\"" + lineEnd
+                + "Content-Type: text/plain" + lineEnd
+                + lineEnd
+                + kv[1] + lineEnd;
+        }
+
+        head += twoHyphens + boundary + lineEnd
+            + "Content-Disposition: form-data; name=\"" + fileField
+                + "\"; filename=\"" + fileName + "\"" + lineEnd
+            + "Content-Transfer-Encoding: binary" + lineEnd
+            + lineEnd;
+
+        String tail = lineEnd + twoHyphens + boundary + twoHyphens + lineEnd;
+
+        int requestLength = head.length() + sizeBytes + tail.length();
+
+        connection.setFixedLengthStreamingMode((int) requestLength);
+        connection.connect();
+
         outputStream = new DataOutputStream(connection.getOutputStream());
-        outputStream.writeBytes(twoHyphens + boundary + lineEnd);
-        outputStream
-                .writeBytes("Content-Disposition: form-data; name=\""
-                        + fileField + "\"; filename=\"" + fileName + "\""
-                        + lineEnd);
-        outputStream.writeBytes("Content-Transfer-Encoding: binary"
-                + lineEnd);
-        outputStream.writeBytes(lineEnd);
+        outputStream.writeBytes(head);
 
         bytesAvailable = fileInputStream.available();
         bufferSize = Math.min(bytesAvailable, maxBufferSize);
@@ -104,23 +122,8 @@ public class UploadService extends IntentService {
             bytesRead = fileInputStream.read(buffer, 0, bufferSize);
         }
 
-        outputStream.writeBytes(lineEnd);
-
-        int max = posts.length;
-        for (int i = 0; i < max; i++) {
-            outputStream.writeBytes(twoHyphens + boundary + lineEnd);
-            String[] kv = posts[i].split("=");
-            outputStream
-                    .writeBytes("Content-Disposition: form-data; name=\""
-                            + kv[0] + "\"" + lineEnd);
-            outputStream.writeBytes("Content-Type: text/plain" + lineEnd);
-            outputStream.writeBytes(lineEnd);
-            outputStream.writeBytes(kv[1]);
-            outputStream.writeBytes(lineEnd);
-        }
-
-        outputStream.writeBytes(twoHyphens + boundary + twoHyphens
-                + lineEnd);
+        outputStream.writeBytes(tail);
+        outputStream.flush();
 
         int responseCode = connection.getResponseCode();
         if (responseCode != 200) {
