@@ -248,7 +248,13 @@ public class UploadService extends IntentService {
     @Override
     protected void onHandleIntent(Intent intent) {
         Uri uri = (Uri) intent.getParcelableExtra("uri");
-        String fileName = getFileNameByUri(uri);
+        String fileName = null;
+        try {
+            fileName = getFileNameByUri(uri);
+        } catch (Exception e) {
+            notificateException(e);
+            return;
+        }
 
         SharedPreferences prefs = getSharedPreferences("ConfigActivity", MODE_PRIVATE);
 
