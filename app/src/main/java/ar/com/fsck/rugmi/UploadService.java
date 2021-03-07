@@ -61,7 +61,7 @@ public class UploadService extends IntentService {
 
         int bytesRead, bytesAvailable, bufferSize;
         byte[] buffer;
-        int maxBufferSize = 64 * 1024;
+        int maxBufferSize = 128 * 1024;
 
         URL url = new URL(urlTo);
         connection = (HttpURLConnection) url.openConnection();
@@ -133,7 +133,11 @@ public class UploadService extends IntentService {
 
         int responseCode = connection.getResponseCode();
         if (responseCode != 200) {
-            throw new Exception("Connection Error Code: " + responseCode);
+            if (responseCode == 500) {
+                result = this.convertStreamToString(connection.getErrorStream());
+                return result;
+            }
+            throw new Exception("Connection Error Code: " + responseCode + " " + connection.getResponseMessage());
         }
 
         inputStream = connection.getInputStream();
