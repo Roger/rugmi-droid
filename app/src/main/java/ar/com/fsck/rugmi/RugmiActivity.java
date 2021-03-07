@@ -8,8 +8,8 @@ import android.os.Bundle;
 import android.provider.MediaStore;
 import android.util.Log;
 
-import org.apache.commons.io.IOUtils;
-
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.io.InputStream;
 import java.io.PrintWriter;
 import java.io.StringWriter;
@@ -47,7 +47,7 @@ public class RugmiActivity extends Activity {
                     uploadService.putExtra("filename", filename);
 
                     InputStream inputStream = getApplicationContext().getContentResolver().openInputStream(uri);
-                    UploadService.uploadData = IOUtils.toByteArray(inputStream);
+                    UploadService.uploadData = readInputStream(inputStream);
                 } catch (Exception e) {
                     StringWriter sw = new StringWriter();
                     e.printStackTrace(new PrintWriter(sw));
@@ -59,6 +59,18 @@ public class RugmiActivity extends Activity {
         }
 
         finish();
+    }
+
+    public byte[] readInputStream(InputStream is) throws IOException {
+        ByteArrayOutputStream buffer = new ByteArrayOutputStream();
+        int nRead;
+        byte[] data = new byte[16384];
+
+        while ((nRead = is.read(data, 0, data.length)) != -1) {
+            buffer.write(data, 0, nRead);
+        }
+
+        return buffer.toByteArray();
     }
 
     public String getFileNameByUri(Uri uri) {
