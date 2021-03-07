@@ -13,6 +13,15 @@ public class NotificationReceiveActivity extends Activity {
         super.onCreate(savedInstanceState);
         Intent intent = getIntent();
 
+        String action = intent.getStringExtra("action");
+
+        if (action.equals("cancel")) {
+            UploadService.cancelRequested = true;
+            finish();
+            return;
+        }
+        assert action.equals("copy");
+
         String text = intent.getStringExtra("text");
 
         ClipboardManager clipboard = (ClipboardManager) getSystemService(Context.CLIPBOARD_SERVICE);

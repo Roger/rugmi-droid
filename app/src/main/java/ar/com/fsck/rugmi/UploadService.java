@@ -35,6 +35,7 @@ public class UploadService extends IntentService {
     private static final int SUCCESS_MID = 3;
 
     public static byte[] uploadData;
+    public static boolean cancelRequested = false;
 
     private NotificationCompat.Builder progressNotification;
     private NotificationManagerCompat mNotificationManager;
@@ -120,6 +121,10 @@ public class UploadService extends IntentService {
             bytesAvailable = fileInputStream.available();
             bufferSize = Math.min(bytesAvailable, maxBufferSize);
             bytesRead = fileInputStream.read(buffer, 0, bufferSize);
+
+            if (cancelRequested) {
+                return "Cancelled";
+            }
         }
         progress(sizeBytes, sizeBytes, fileName);
 
@@ -203,16 +208,21 @@ public class UploadService extends IntentService {
         }
     }
 
-    public NotificationCompat.Builder buildNotification(String title, String text) {
+    public PendingIntent buildNotificationIntent(String action, String text) {
         Intent intent = new Intent(this, NotificationReceiveActivity.class);
-        intent.putExtra("text", text);
 
         intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
         intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
         intent.addFlags(Intent.FLAG_ACTIVITY_NO_HISTORY);
         intent.addFlags(Intent.FLAG_FROM_BACKGROUND);
+        intent.putExtra("action", action);
+        intent.putExtra("text", text);
 
-        PendingIntent pIntent = PendingIntent.getActivity(this, 0, intent, PendingIntent.FLAG_CANCEL_CURRENT);
+        return PendingIntent.getActivity(this, 0, intent, PendingIntent.FLAG_CANCEL_CURRENT);
+    }
+
+    public NotificationCompat.Builder buildNotification(String title, String text) {
+        PendingIntent pIntent = buildNotificationIntent("copy", text);
 
         NotificationCompat.Builder builder = new NotificationCompat.Builder(this, CHANNEL_ID)
             .setSmallIcon(R.drawable.ic_launcher)
@@ -242,8 +252,11 @@ public class UploadService extends IntentService {
 
     public void progress(int read, int total, String fileName) {
         if (progressNotification == null) {
+            cancelRequested = false;
+            PendingIntent pIntent = buildNotificationIntent("cancel", "");
             progressNotification = new NotificationCompat.Builder(this, PROGRESS_CHANNEL_ID)
                     .setSmallIcon(R.drawable.ic_launcher)
+                    .addAction(R.drawable.ic_launcher, "Cancel", pIntent)
                     .setContentTitle("Uploading " + fileName + " (" + total / 1024 + " KB)")
                     .setContentText("Starting upload")
                     .setOngoing(true)
