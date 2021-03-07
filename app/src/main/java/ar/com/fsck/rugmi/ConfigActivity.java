@@ -1,14 +1,26 @@
 package ar.com.fsck.rugmi;
 
+import android.Manifest;
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.DialogInterface;
 import android.content.SharedPreferences;
+import android.content.pm.PackageManager;
 import android.os.Bundle;
 import android.widget.EditText;
 import android.widget.LinearLayout;
 
+import androidx.core.app.ActivityCompat;
+import androidx.core.content.ContextCompat;
+
 public class ConfigActivity extends Activity {
+    private void askForPermission() {
+        String perm = Manifest.permission.READ_EXTERNAL_STORAGE;
+        if (ContextCompat.checkSelfPermission(this, perm) != PackageManager.PERMISSION_GRANTED) {
+            ActivityCompat.requestPermissions(this, new String[]{perm}, 1);
+        }
+    }
+
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
@@ -50,6 +62,7 @@ public class ConfigActivity extends Activity {
                     editor.putString("key", keyText.getText().toString());
                     editor.putString("url", urlText.getText().toString());
                     editor.commit();
+                    askForPermission();
                     finish();
                 }
             })

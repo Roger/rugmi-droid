@@ -1,6 +1,8 @@
 package ar.com.fsck.rugmi;
 
 import android.app.Activity;
+import android.content.ClipData;
+import android.content.ClipboardManager;
 import android.content.Context;
 import android.content.Intent;
 import android.os.Bundle;
@@ -11,17 +13,20 @@ public class NotificationReceiveActivity extends Activity {
         super.onCreate(savedInstanceState);
         Intent intent = getIntent();
 
+        String action = intent.getStringExtra("action");
+
+        if (action.equals("cancel")) {
+            UploadService.cancelRequested = true;
+            finish();
+            return;
+        }
+        assert action.equals("copy");
+
         String text = intent.getStringExtra("text");
 
-        int sdk = android.os.Build.VERSION.SDK_INT;
-        if(sdk < android.os.Build.VERSION_CODES.HONEYCOMB) {
-            android.text.ClipboardManager clipboard = (android.text.ClipboardManager) getSystemService(Context.CLIPBOARD_SERVICE);
-            clipboard.setText(text);
-        } else {
-            android.content.ClipboardManager clipboard = (android.content.ClipboardManager) getSystemService(Context.CLIPBOARD_SERVICE); 
-            android.content.ClipData clip = android.content.ClipData.newPlainText("text label", text);
-            clipboard.setPrimaryClip(clip);
-        }
+        ClipboardManager clipboard = (ClipboardManager) getSystemService(Context.CLIPBOARD_SERVICE);
+        ClipData clip = ClipData.newPlainText("text label", text);
+        clipboard.setPrimaryClip(clip);
 
         Toast.makeText(getApplicationContext(), "Copied to clipboard", Toast.LENGTH_LONG).show();
 
