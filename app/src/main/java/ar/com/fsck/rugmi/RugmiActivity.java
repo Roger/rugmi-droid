@@ -8,6 +8,12 @@ import android.os.Bundle;
 import android.provider.MediaStore;
 import android.util.Log;
 
+import org.apache.commons.io.IOUtils;
+
+import java.io.InputStream;
+import java.io.PrintWriter;
+import java.io.StringWriter;
+
 public class RugmiActivity extends Activity {
 
     /** Called when the activity is first created. */
@@ -35,6 +41,20 @@ public class RugmiActivity extends Activity {
                 // prepare service
                 Intent uploadService = new Intent(getApplicationContext(), UploadService.class);
                 uploadService.putExtra("uri", uri);
+
+                try {
+                    String filename = getFileNameByUri(uri);
+                    uploadService.putExtra("filename", filename);
+
+                    InputStream inputStream = getApplicationContext().getContentResolver().openInputStream(uri);
+                    byte[] data = IOUtils.toByteArray(inputStream);
+                    uploadService.putExtra("data", data);
+                } catch (Exception e) {
+                    StringWriter sw = new StringWriter();
+                    e.printStackTrace(new PrintWriter(sw));
+                    uploadService.putExtra("exception", sw.toString());
+                }
+
                 startService(uploadService);
             }
         }

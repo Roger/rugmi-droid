@@ -4,6 +4,7 @@ import java.io.BufferedReader;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.ByteArrayInputStream;
 import java.io.InputStreamReader;
 import java.io.StringWriter;
 import java.io.PrintWriter;
@@ -215,11 +216,12 @@ public class UploadService extends IntentService {
     @Override
     protected void onHandleIntent(Intent intent) {
         Uri uri = (Uri) intent.getParcelableExtra("uri");
-        String fileName = null;
-        try {
-            fileName = getFileNameByUri(uri);
-        } catch (Exception e) {
-            notificateException(e);
+        String fileName = intent.getStringExtra("filename");
+        byte[] data = intent.getByteArrayExtra("data");
+        String exceptionText = intent.getStringExtra("exception");
+
+        if (exceptionText != null) {
+            notificate(0, "Error", exceptionText);
             return;
         }
 
@@ -233,9 +235,7 @@ public class UploadService extends IntentService {
         InputStream inputStream;
 
         try {
-            inputStream = getApplicationContext().getContentResolver()
-                    .openInputStream(uri);
-
+            inputStream = new ByteArrayInputStream(data);
             String url = multipartRequest(urlPref, posts,
                     inputStream, fileName, "file");
             notificate(1,"Uploaded", url);
