@@ -15,7 +15,6 @@ public class NotificationReceiveActivity extends Activity {
 
         String text = intent.getStringExtra("text");
 
-        int sdk = android.os.Build.VERSION.SDK_INT;
         ClipboardManager clipboard = (ClipboardManager) getSystemService(Context.CLIPBOARD_SERVICE);
         ClipData clip = ClipData.newPlainText("text label", text);
         clipboard.setPrimaryClip(clip);
