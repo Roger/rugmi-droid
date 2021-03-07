@@ -1,14 +1,40 @@
 package ar.com.fsck.rugmi;
 
-import android.app.Activity;
+import android.Manifest;
 import android.app.AlertDialog;
 import android.content.DialogInterface;
 import android.content.SharedPreferences;
+import android.content.pm.PackageManager;
 import android.os.Bundle;
+import android.util.Log;
 import android.widget.EditText;
 import android.widget.LinearLayout;
 
-public class ConfigActivity extends Activity {
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
+import androidx.core.content.ContextCompat;
+import androidx.appcompat.app.AppCompatActivity;
+
+public class ConfigActivity extends AppCompatActivity {
+    private ActivityResultLauncher<String> requestPermissionLauncher =
+            registerForActivityResult(new ActivityResultContracts.RequestPermission(), isGranted -> {
+                if (isGranted) {
+                    Log.i("rugmi permissions", "yay");
+                } else {
+                    Log.e("rugmi permissions", "aw crap");
+                }
+            });
+
+    public void askForPermission() {
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.READ_EXTERNAL_STORAGE) ==
+                PackageManager.PERMISSION_GRANTED) {
+            // You can use the API that requires the permission.
+            //
+        } else {
+            requestPermissionLauncher.launch(Manifest.permission.READ_EXTERNAL_STORAGE);
+        }
+    }
+
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
@@ -50,6 +76,7 @@ public class ConfigActivity extends Activity {
                     editor.putString("key", keyText.getText().toString());
                     editor.putString("url", urlText.getText().toString());
                     editor.commit();
+                    askForPermission();
                     finish();
                 }
             })
