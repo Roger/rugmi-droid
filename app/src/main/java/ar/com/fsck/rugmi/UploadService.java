@@ -29,17 +29,19 @@ import android.util.Log;
 public class UploadService extends IntentService {
 
     private static final String CHANNEL_ID = "rugmi_notifications";
+    private static final int PROGRESS_MID = 2;
 
     public static byte[] uploadData;
+
+    private NotificationCompat.Builder progressNotification;
 
     public UploadService() {
         super("UploadService");
     }
 
-
     // see http://androidsnippets.com/multipart-http-requests
     public String multipartRequest(String urlTo, String[] posts,
-            InputStream fileInputStream, String fileName, String fileField)
+            InputStream fileInputStream, String fileName, String fileField, int sizeBytes)
             throws Exception {
 
         HttpURLConnection connection = null;
@@ -55,7 +57,7 @@ public class UploadService extends IntentService {
 
         int bytesRead, bytesAvailable, bufferSize;
         byte[] buffer;
-        int maxBufferSize = 1 * 1024 * 1024;
+        int maxBufferSize = 64 * 1024;
 
         URL url = new URL(urlTo);
         connection = (HttpURLConnection) url.openConnection();
@@ -85,9 +87,14 @@ public class UploadService extends IntentService {
         bufferSize = Math.min(bytesAvailable, maxBufferSize);
         buffer = new byte[bufferSize];
 
+        int totalBytesRead = 0;
         bytesRead = fileInputStream.read(buffer, 0, bufferSize);
+
         while (bytesRead > 0) {
+            totalBytesRead += bytesRead;
             outputStream.write(buffer, 0, bufferSize);
+            outputStream.flush();
+            progress(totalBytesRead, sizeBytes);
             bytesAvailable = fileInputStream.available();
             bufferSize = Math.min(bytesAvailable, maxBufferSize);
             bytesRead = fileInputStream.read(buffer, 0, bufferSize);
@@ -181,7 +188,7 @@ public class UploadService extends IntentService {
         }
     }
 
-    public void notificate(int mid, String title, String text) {
+    public NotificationCompat.Builder buildNotification(String title, String text) {
         Intent intent = new Intent(this, NotificationReceiveActivity.class);
         intent.putExtra("text", text);
 
@@ -192,20 +199,44 @@ public class UploadService extends IntentService {
 
         PendingIntent pIntent = PendingIntent.getActivity(this, 0, intent, PendingIntent.FLAG_CANCEL_CURRENT);
 
-        Notification noti = new NotificationCompat.Builder(this, CHANNEL_ID)
+        NotificationCompat.Builder builder = new NotificationCompat.Builder(this, CHANNEL_ID)
             .setSmallIcon(R.drawable.ic_launcher)
             .addAction(R.drawable.ic_launcher, "Copy", pIntent)
             .setContentIntent(pIntent)
             .setContentTitle(title)
             .setAutoCancel(true)
             .setContentText(text)
-            .setStyle(new NotificationCompat.BigTextStyle().bigText(text))
-            .build();
+            .setStyle(new NotificationCompat.BigTextStyle().bigText(text));
 
+        return builder;
+    }
+
+    public NotificationCompat.Builder notificate(int mid, String title, String text) {
+        NotificationCompat.Builder builder = buildNotification(title, text);
+        notificate(mid, builder);
+        return builder;
+    }
+
+    public void notificate(int mid, NotificationCompat.Builder builder) {
         NotificationManagerCompat mNotificationManager = NotificationManagerCompat.from(this);
 
-        mNotificationManager.notify(mid, noti);
+        mNotificationManager.notify(mid, builder.build());
+    }
 
+    public void progress(int read, int total) {
+        if (progressNotification == null) {
+            progressNotification = buildNotification("Uploading", "Starting upload");
+        }
+
+        int percent = read / total * 100;
+
+        if (percent > 0) {
+            progressNotification.setContentText(percent + "% done");
+        }
+
+        progressNotification.setProgress(100, percent, false);
+
+        notificate(PROGRESS_MID, progressNotification);
     }
 
     public void notificateException(Exception e) {
@@ -239,9 +270,14 @@ public class UploadService extends IntentService {
 
         try {
             inputStream = new ByteArrayInputStream(data);
+            int sizeBytes = data.length;
             String url = multipartRequest(urlPref, posts,
-                    inputStream, fileName, "file");
-            notificate(1,"Uploaded", url);
+                    inputStream, fileName, "file", sizeBytes);
+            progressNotification.setContentTitle("Uploaded")
+                    .setContentText(url)
+                    .setProgress(0, 0, false);
+            notificate(PROGRESS_MID, progressNotification);
+            progressNotification = null;
 
         } catch (Exception e) {
             Log.e("MultipartRequest", "Multipart Form Upload Error");
