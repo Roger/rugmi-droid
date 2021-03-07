@@ -251,7 +251,11 @@ public class UploadService extends IntentService {
             mNotificationManager = NotificationManagerCompat.from(this);
         };
 
-        mNotificationManager.notify(mid, builder.build());
+        if (builder == null) {
+            mNotificationManager.cancel(mid);
+        } else {
+            mNotificationManager.notify(mid, builder.build());
+        }
     }
 
     public void progress(int read, int total, String fileName) {
