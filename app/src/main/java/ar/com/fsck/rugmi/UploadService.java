@@ -110,16 +110,18 @@ public class UploadService extends IntentService {
 
         int totalBytesRead = 0;
         bytesRead = fileInputStream.read(buffer, 0, bufferSize);
+        progress(totalBytesRead, sizeBytes, fileName);
 
         while (bytesRead > 0) {
             totalBytesRead += bytesRead;
             outputStream.write(buffer, 0, bufferSize);
             outputStream.flush();
-            progress(totalBytesRead, sizeBytes);
+            progress(totalBytesRead, sizeBytes, fileName);
             bytesAvailable = fileInputStream.available();
             bufferSize = Math.min(bytesAvailable, maxBufferSize);
             bytesRead = fileInputStream.read(buffer, 0, bufferSize);
         }
+        progress(sizeBytes, sizeBytes, fileName);
 
         outputStream.writeBytes(tail);
         outputStream.flush();
@@ -238,11 +240,11 @@ public class UploadService extends IntentService {
         mNotificationManager.notify(mid, builder.build());
     }
 
-    public void progress(int read, int total) {
+    public void progress(int read, int total, String fileName) {
         if (progressNotification == null) {
             progressNotification = new NotificationCompat.Builder(this, PROGRESS_CHANNEL_ID)
                     .setSmallIcon(R.drawable.ic_launcher)
-                    .setContentTitle("Uploading")
+                    .setContentTitle("Uploading " + fileName + " (" + total / 1024 + " KB)")
                     .setContentText("Starting upload")
                     .setOngoing(true)
                     .setProgress(100, 0, false)
